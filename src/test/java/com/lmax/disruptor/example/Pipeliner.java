@@ -6,10 +6,11 @@ import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.util.DaemonThreadFactory;
 
+import java.util.concurrent.TimeUnit;
+
 public class Pipeliner
 {
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) throws InterruptedException {
         Disruptor<PipelinerEvent> disruptor = new Disruptor<PipelinerEvent>(
             PipelinerEvent.FACTORY, 1024, DaemonThreadFactory.INSTANCE);
 
@@ -21,7 +22,7 @@ public class Pipeliner
 
         RingBuffer<PipelinerEvent> ringBuffer = disruptor.start();
 
-        for (int i = 0; i < 1000; i++)
+        for (int i = 0; i < 10; i++)
         {
             long next = ringBuffer.next();
             try
@@ -34,6 +35,8 @@ public class Pipeliner
                 ringBuffer.publish(next);
             }
         }
+
+        TimeUnit.SECONDS.sleep(10);
     }
 
     private static class ParallelHandler implements EventHandler<PipelinerEvent>
@@ -52,7 +55,7 @@ public class Pipeliner
         {
             if (sequence % totalHandlers == ordinal)
             {
-                event.result = Long.toString(event.input);
+                event.result = Long.toString(event.input * 10);
             }
         }
     }
@@ -68,7 +71,7 @@ public class Pipeliner
             {
                 System.out.println("Error: " + event);
             }
-
+            System.out.println("event = " + event);
             lastEvent = event.input;
             event.result = null;
         }
